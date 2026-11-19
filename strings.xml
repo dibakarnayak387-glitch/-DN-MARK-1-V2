@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">D.N. Mark 1</string>
+    <string name="app_subtitle">Mobile Work Agent</string>
+    <string name="auth_headline">D.N. Mark 1 Command Core</string>
+    <string name="auth_description">Multilingual Android work agent powered by Gemini, native tool execution, and encrypted cloud memory.</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="sign_out">Sign out</string>
+    <string name="nav_core">Core</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_memory">Memory</string>
+    <string name="nav_history">History</string>
+    <string name="nav_settings">Control</string>
+    <string name="mic_start_listening">Start voice command</string>
+    <string name="mic_stop_listening">Stop listening</string>
+    <string name="command_input_hint">Ask Jarvis in English, हिन्दी, or ଓଡ଼ିଆ…</string>
+    <string name="send_command">Send command</string>
+    <string name="approve_plan">Approve &amp; Execute</string>
+    <string name="cancel_plan">Cancel</string>
+    <string name="retry_task">Retry Task</string>
+    <string name="save_memory_confirm">Approve &amp; Save Memory</string>
+    <string name="decline_memory">Dismiss</string>
+    <string name="voice_service_channel_name">D.N. Mark 1 Voice Session</string>
+    <string name="voice_service_channel_desc">Active foreground microphone session for hands-free voice commands.</string>
+    <string name="alerts_channel_name">D.N. Mark 1 Alerts</string>
+    <string name="alerts_channel_desc">User-approved reminders and task completion updates.</string>
+    <string name="voice_service_active_title">D.N. Mark 1 Listening</string>
+    <string name="voice_service_active_text">Say \"Jarvis\" followed by your command. Tap Stop to end listening immediately.</string>
+    <string name="action_stop_listening">Stop Listening</string>
+</resources>
