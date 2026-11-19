@@ -1,0 +1,251 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLanguage(lang) {
+      return lang is string && lang in ['en', 'hi', 'or'];
+    }
+
+    function isValidTimestampBound(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // Entity validation helpers (required fields strictly asserted; optional fields allow absence or null)
+    function isValidConversationMessage(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.role is string &&
+             data.role in ['USER', 'ASSISTANT', 'SYSTEM', 'TOOL'] &&
+             data.text is string &&
+             data.text.size() >= 1 &&
+             data.text.size() <= 12000 &&
+             isValidLanguage(data.language) &&
+             (!('linkedTaskId' in data) || data.linkedTaskId == null || (data.linkedTaskId is string && data.linkedTaskId.size() <= 128)) &&
+             isValidTimestampBound(data.createdAt) &&
+             isValidTimestampBound(data.updatedAt);
+    }
+
+    function isValidAgentTask(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 200 &&
+             data.description is string &&
+             data.description.size() <= 2000 &&
+             isValidLanguage(data.language) &&
+             data.status is string &&
+             data.status in ['PENDING', 'AWAITING_CONFIRMATION', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'] &&
+             data.progressPercent is int &&
+             data.progressPercent >= 0 &&
+             data.progressPercent <= 100 &&
+             data.stepsCount is int &&
+             data.stepsCount >= 0 &&
+             data.stepsCount <= 25 &&
+             data.completedStepsCount is int &&
+             data.completedStepsCount >= 0 &&
+             data.completedStepsCount <= 25 &&
+             data.stepsSummary is list &&
+             data.stepsSummary.size() <= 25 &&
+             (data.stepsSummary.size() == 0 || data.stepsSummary[0] is string) &&
+             (!('summary' in data) || data.summary == null || (data.summary is string && data.summary.size() <= 4000)) &&
+             (!('errorMessage' in data) || data.errorMessage == null || (data.errorMessage is string && data.errorMessage.size() <= 1000)) &&
+             data.requiresConfirmation is bool &&
+             isValidTimestampBound(data.createdAt) &&
+             isValidTimestampBound(data.updatedAt);
+    }
+
+    function isValidMemoryItem(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.category is string &&
+             data.category in ['PREFERENCE', 'INSTRUCTION', 'FACT', 'ROUTINE', 'CONTEXT'] &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 160 &&
+             data.content is string &&
+             data.content.size() >= 1 &&
+             data.content.size() <= 2000 &&
+             isValidLanguage(data.language) &&
+             data.approvedByUser is bool &&
+             data.approvedByUser == true &&
+             data.pinned is bool &&
+             isValidTimestampBound(data.createdAt) &&
+             isValidTimestampBound(data.updatedAt);
+    }
+
+    function isValidUserReminder(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 200 &&
+             (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 1000)) &&
+             data.scheduledTimeLabel is string &&
+             data.scheduledTimeLabel.size() >= 1 &&
+             data.scheduledTimeLabel.size() <= 100 &&
+             data.completed is bool &&
+             isValidTimestampBound(data.createdAt) &&
+             isValidTimestampBound(data.updatedAt);
+    }
+
+    // Per-user isolated subcollections
+    match /users/{userId} {
+
+      // Conversations subcollection
+      match /conversations/{messageId} {
+        allow get: if isOwner(userId) && isValidId(messageId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(messageId) &&
+                         incoming().keys().hasAll(['userId', 'role', 'text', 'language', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'role', 'text', 'language', 'linkedTaskId', 'createdAt', 'updatedAt']) &&
+                         isValidConversationMessage(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(messageId) &&
+                         isValidConversationMessage(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().role == existing().role &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['text', 'linkedTaskId', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(messageId);
+      }
+
+      // Agent Tasks subcollection
+      match /tasks/{taskId} {
+        allow get: if isOwner(userId) && isValidId(taskId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'description', 'language', 'status',
+                           'progressPercent', 'stepsCount', 'completedStepsCount',
+                           'stepsSummary', 'requiresConfirmation', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'description', 'language', 'status',
+                           'progressPercent', 'stepsCount', 'completedStepsCount',
+                           'stepsSummary', 'summary', 'errorMessage',
+                           'requiresConfirmation', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidAgentTask(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidAgentTask(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         existing().status != 'COMPLETED' &&
+                         (
+                           // Action: Progress / execution update or retry from non-completed state
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'status', 'progressPercent', 'completedStepsCount',
+                             'stepsSummary', 'summary', 'errorMessage',
+                             'requiresConfirmation', 'updatedAt'
+                           ])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(taskId);
+      }
+
+      // Smart Memory subcollection
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId) && isValidId(memoryId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(memoryId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'category', 'title', 'content', 'language',
+                           'approvedByUser', 'pinned', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'category', 'title', 'content', 'language',
+                           'approvedByUser', 'pinned', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidMemoryItem(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(memoryId) &&
+                         isValidMemoryItem(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           // Action: Edit memory content/category/pin
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'category', 'title', 'content', 'language', 'pinned', 'updatedAt'
+                           ])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(memoryId);
+      }
+
+      // User Reminders & Day Plan subcollection
+      match /reminders/{reminderId} {
+        allow get: if isOwner(userId) && isValidId(reminderId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(reminderId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'scheduledTimeLabel', 'completed',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'notes', 'scheduledTimeLabel', 'completed',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidUserReminder(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(reminderId) &&
+                         isValidUserReminder(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           // Action: Toggle completion or edit reminder details
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'title', 'notes', 'scheduledTimeLabel', 'completed', 'updatedAt'
+                           ])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(reminderId);
+      }
+    }
+  }
+}

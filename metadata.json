@@ -1,0 +1,6 @@
+{
+  "name": "D.N. Mark 1",
+  "description": "Multilingual Android AI work agent with Gemini planning, Android tool execution, voice control, and cloud-synced smart memory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

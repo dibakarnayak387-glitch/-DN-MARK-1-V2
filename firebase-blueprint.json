@@ -1,0 +1,246 @@
+{
+  "entities": {
+    "ConversationMessage": {
+      "title": "ConversationMessage",
+      "description": "A single turn in the user's conversation with D.N. Mark 1.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["USER", "ASSISTANT", "SYSTEM", "TOOL"],
+          "description": "Sender role for the conversation turn."
+        },
+        "text": {
+          "type": "string",
+          "description": "Message body in English, Hindi, or Odia."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "or"],
+          "description": "ISO 639-1 detected or selected language code."
+        },
+        "linkedTaskId": {
+          "type": "string",
+          "description": "Optional agent task ID associated with this turn."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "role", "text", "language", "createdAt", "updatedAt"]
+    },
+    "AgentTask": {
+      "title": "AgentTask",
+      "description": "A multi-step work agent task with execution state, progress, and step summaries.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "title": {
+          "type": "string",
+          "description": "Concise task title."
+        },
+        "description": {
+          "type": "string",
+          "description": "Full task objective."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "or"],
+          "description": "Language of the task."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "AWAITING_CONFIRMATION", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"],
+          "description": "Current execution lifecycle state."
+        },
+        "progressPercent": {
+          "type": "integer",
+          "description": "Completion percentage from 0 to 100."
+        },
+        "stepsCount": {
+          "type": "integer",
+          "description": "Total number of ordered execution steps."
+        },
+        "completedStepsCount": {
+          "type": "integer",
+          "description": "Number of verified completed steps."
+        },
+        "stepsSummary": {
+          "type": "array",
+          "description": "Bounded list of human-readable step outcome entries."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Optional verified final report."
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "Optional failure or recovery detail."
+        },
+        "requiresConfirmation": {
+          "type": "boolean",
+          "description": "Whether explicit user confirmation is required prior to execution."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "description",
+        "language",
+        "status",
+        "progressPercent",
+        "stepsCount",
+        "completedStepsCount",
+        "stepsSummary",
+        "requiresConfirmation",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MemoryItem": {
+      "title": "MemoryItem",
+      "description": "User-approved persistent memory entry for preferences, instructions, or personal context.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["PREFERENCE", "INSTRUCTION", "FACT", "ROUTINE", "CONTEXT"],
+          "description": "Classification of the memory."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short label for the memory."
+        },
+        "content": {
+          "type": "string",
+          "description": "Detailed memory value."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "or"],
+          "description": "Language of the memory entry."
+        },
+        "approvedByUser": {
+          "type": "boolean",
+          "description": "Must be true to confirm explicit user consent before saving."
+        },
+        "pinned": {
+          "type": "boolean",
+          "description": "Whether this memory is pinned to the top of agent context."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "category",
+        "title",
+        "content",
+        "language",
+        "approvedByUser",
+        "pinned",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserReminder": {
+      "title": "UserReminder",
+      "description": "User-approved reminder or scheduled daily priority item.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "title": {
+          "type": "string",
+          "description": "Reminder title."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional details or notes."
+        },
+        "scheduledTimeLabel": {
+          "type": "string",
+          "description": "Human-readable time or schedule label."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the reminder has been completed."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "scheduledTimeLabel",
+        "completed",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/conversations/{messageId}": {
+      "schema": { "$ref": "#/entities/ConversationMessage" },
+      "description": "Per-user conversation history with D.N. Mark 1."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/AgentTask" },
+      "description": "Per-user work agent tasks, plans, and verified execution summaries."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/MemoryItem" },
+      "description": "Per-user approved preferences, instructions, and contextual memories."
+    },
+    "/users/{userId}/reminders/{reminderId}": {
+      "schema": { "$ref": "#/entities/UserReminder" },
+      "description": "Per-user approved reminders and day-plan items."
+    }
+  }
+}
